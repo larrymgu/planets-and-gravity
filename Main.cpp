@@ -99,6 +99,12 @@ void drawSphere(Mesh& sphere, Shader& shader, glm::vec3 position, float radius, 
     sphere.Draw(shader);
 }
 
+struct Body {
+    glm::vec3 position;
+    float radius;
+    glm::vec3 color;
+};
+
 int main()
 {
     // glfw: initialize and configure
@@ -221,6 +227,13 @@ int main()
 
     Mesh sphere = createSphereMesh(36, 18);   // columns, rows
 
+    std::vector<Body> bodies = {
+        { glm::vec3(0.0f, -0.5f, 1.0f), 0.3f, rgb(0, 119, 190) },
+        { glm::vec3(0.9f, 0.7f, 0.2f), 0.2f, rgb(140, 55, 62) },
+        { glm::vec3(-0.7f, 0.7f, -1.3f), 0.8f, rgb(255, 150, 79 ) },
+    };
+
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -265,7 +278,8 @@ int main()
         //glBindVertexArray(cubeVAO);
         //glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        drawSphere(sphere, lightingShader, glm::vec3(0.0f), 0.5f, rgb(0, 119, 190));
+        for (const Body& b : bodies)
+            drawSphere(sphere, lightingShader, b.position, b.radius, b.color);
 
         // also draw the lamp object
         lightCubeShader.use();
