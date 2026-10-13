@@ -9,8 +9,11 @@
 
 #include "shader_s.h"
 #include "camera.h"
+#include "mesh.h"
 
 #include <iostream>
+#include <vector>
+#include <cmath>
 
 // Test for GitHub (placeholder line changed)
 
@@ -35,6 +38,66 @@ float lastFrame = 0.0f;
 
 // lighting
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
+// Builds a unit sphere (radius 1) centred on the origin.
+// sectors = columns (longitude), stacks = rows (latitude).
+Mesh createSphereMesh(int sectors, int stacks)
+{
+    const float PI = 3.14159265f;
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+
+    // vertices: row/column -> stack/sector angle -> x, y, z
+    for (int i = 0; i <= stacks; ++i)
+    {
+        float stackAngle = PI / 2 - i * (PI / stacks);   // +90 to -90 degrees
+        float xz = cosf(stackAngle);
+        float y = sinf(stackAngle);
+
+        for (int j = 0; j <= sectors; ++j)
+        {
+            float sectorAngle = j * (2 * PI / sectors);  // 0 to 360 degrees
+
+            Vertex v{};                                  // zeroes tangent/bone fields
+            v.Position = glm::vec3(xz * cosf(sectorAngle), y, -xz * sinf(sectorAngle));
+            v.Normal = v.Position;                    // unit sphere: normal == position
+            v.TexCoords = glm::vec2((float)j / sectors, (float)i / stacks);
+            vertices.push_back(v);
+        }
+    }
+
+    // indices: two triangles per quad, one at the poles
+    for (int i = 0; i < stacks; ++i)
+    {
+        unsigned int k1 = i * (sectors + 1);   // start of this row
+        unsigned int k2 = k1 + sectors + 1;    // start of next row
+
+        for (int j = 0; j < sectors; ++j, ++k1, ++k2)
+        {
+            if (i != 0)
+                indices.insert(indices.end(), { k1, k2, k1 + 1 });
+            if (i != stacks - 1)
+                indices.insert(indices.end(), { k1 + 1, k2, k2 + 1 });
+        }
+    }
+
+    return Mesh(vertices, indices, {});        // no textures yet
+}
+
+// Converts 0-255 RGB to the 0-1 range OpenGL uses
+glm::vec3 rgb(int r, int g, int b)
+{
+    return glm::vec3(r, g, b) / 255.0f;
+}
+
+void drawSphere(Mesh& sphere, Shader& shader, glm::vec3 position, float radius, glm::vec3 color)
+{
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), position);
+    model = glm::scale(model, glm::vec3(radius));
+    shader.setMat4("model", model);
+    shader.setVec3("objectColor", color);
+    sphere.Draw(shader);
+}
 
 int main()
 {
@@ -85,77 +148,78 @@ int main()
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
-    float vertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    //float vertices[] = {
+    //    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    //     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    //     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    //     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    //    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    //    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
 
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+    //    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+    //     0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+    //     0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+    //     0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+    //    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+    //    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
 
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    //    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    //    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    //    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    //    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    //    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    //    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
 
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+    //     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+    //     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+    //     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+    //     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+    //     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+    //     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
 
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+    //    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+    //     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+    //     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    //     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    //    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    //    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
 
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
-    };
-    // first, configure the cube's VAO (and VBO)
-    unsigned int VBO, cubeVAO;
-    glGenVertexArrays(1, &cubeVAO);
-    glGenBuffers(1, &VBO);
+    //    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+    //     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+    //     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    //     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    //    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    //    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+    //};
+    //// first, configure the cube's VAO (and VBO)
+    //unsigned int VBO, cubeVAO;
+    //glGenVertexArrays(1, &cubeVAO);
+    //glGenBuffers(1, &VBO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    //glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindVertexArray(cubeVAO);
+    //glBindVertexArray(cubeVAO);
 
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    // normal attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    //// position attribute
+    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    //glEnableVertexAttribArray(0);
+    //// normal attribute
+    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    //glEnableVertexAttribArray(1);
 
 
-    // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
-    unsigned int lightCubeVAO;
-    glGenVertexArrays(1, &lightCubeVAO);
-    glBindVertexArray(lightCubeVAO);
+    //// second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
+    //unsigned int lightCubeVAO;
+    //glGenVertexArrays(1, &lightCubeVAO);
+    //glBindVertexArray(lightCubeVAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // note that we update the lamp's position attribute's stride to reflect the updated buffer data
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    //glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    //// note that we update the lamp's position attribute's stride to reflect the updated buffer data
+    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    //glEnableVertexAttribArray(0);
 
+    Mesh sphere = createSphereMesh(36, 18);   // columns, rows
 
     // render loop
     // -----------
@@ -177,8 +241,8 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // change the light's position values over time (can be done anywhere in the render loop actually, but try to do it at least before using the light source positions)
-        lightPos.x = 1.0f + sin((0.5*glfwGetTime())) * 2.0f;
-        lightPos.y = sin((0.5 * glfwGetTime()) / 2.0f) * 1.0f;
+        lightPos.x = 1.0f + sin((glfwGetTime())) * 2.0f;
+        lightPos.y = sin((glfwGetTime()) / 2.0f) * 1.0f;
 
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
@@ -193,26 +257,28 @@ int main()
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
 
-        // world transformation
-        glm::mat4 model = glm::mat4(1.0f);
-        lightingShader.setMat4("model", model);
+        //// world transformation
+        //glm::mat4 model = glm::mat4(1.0f);
+        //lightingShader.setMat4("model", model);
 
-        // render the cube
-        glBindVertexArray(cubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //// render the cube
+        //glBindVertexArray(cubeVAO);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
 
+        drawSphere(sphere, lightingShader, glm::vec3(0.0f), 0.5f, rgb(0, 119, 190));
 
         // also draw the lamp object
         lightCubeShader.use();
         lightCubeShader.setMat4("projection", projection);
         lightCubeShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
-        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-        lightCubeShader.setMat4("model", model);
+        //model = glm::mat4(1.0f);
+        //model = glm::translate(model, lightPos);
+        //model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+        //lightCubeShader.setMat4("model", model);
 
-        glBindVertexArray(lightCubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //glBindVertexArray(lightCubeVAO);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
+        drawSphere(sphere, lightCubeShader, lightPos, 0.1f, rgb(255, 255, 255));
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -223,9 +289,9 @@ int main()
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &cubeVAO);
-    glDeleteVertexArrays(1, &lightCubeVAO);
-    glDeleteBuffers(1, &VBO);
+    // glDeleteVertexArrays(1, &cubeVAO);
+    // glDeleteVertexArrays(1, &lightCubeVAO);
+    // glDeleteBuffers(1, &VBO);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
