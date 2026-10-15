@@ -14,6 +14,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <numbers>
 
 // Test for GitHub (placeholder line changed)
 
@@ -27,7 +28,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 10.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -37,26 +38,25 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // lighting
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
 
 // Builds a unit sphere (radius 1) centred on the origin.
 // sectors = columns (longitude), stacks = rows (latitude).
 Mesh createSphereMesh(int sectors, int stacks)
 {
-    const float PI = 3.14159265f;
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
     // vertices: row/column -> stack/sector angle -> x, y, z
     for (int i = 0; i <= stacks; ++i)
     {
-        float stackAngle = PI / 2 - i * (PI / stacks);   // +90 to -90 degrees
+        float stackAngle = std::numbers::pi / 2 - i * (std::numbers::pi / stacks);   // +90 to -90 degrees
         float xz = cosf(stackAngle);
         float y = sinf(stackAngle);
 
         for (int j = 0; j <= sectors; ++j)
         {
-            float sectorAngle = j * (2 * PI / sectors);  // 0 to 360 degrees
+            float sectorAngle = j * (2 * std::numbers::pi / sectors);  // 0 to 360 degrees
 
             Vertex v{};                                  // zeroes tangent/bone fields
             v.Position = glm::vec3(xz * cosf(sectorAngle), y, -xz * sinf(sectorAngle));
@@ -105,6 +105,12 @@ struct Body {
     glm::vec3 color;
 };
 
+void orbitCalc(Body& bodyObject, float startingOffset, float orbitalRadius, float orbitalSpeed) {
+    float offsetScaled = startingOffset * 2 * std::numbers::pi;
+    bodyObject.position.x = sin((glfwGetTime()) * orbitalSpeed + offsetScaled) * orbitalRadius;
+    bodyObject.position.z = cos((glfwGetTime()) * orbitalSpeed + offsetScaled) * orbitalRadius;
+}
+
 int main()
 {
     // glfw: initialize and configure
@@ -150,9 +156,9 @@ int main()
     Mesh sphere = createSphereMesh(36, 18);   // columns, rows
 
     std::vector<Body> bodies = {
-        { glm::vec3(0.0f, -0.5f, 1.0f), 0.3f, rgb(0, 119, 190) },
-        { glm::vec3(0.9f, 0.7f, 0.2f), 0.2f, rgb(140, 55, 62) },
-        { glm::vec3(-0.7f, 0.7f, -1.3f), 0.8f, rgb(255, 150, 79 ) },
+        { glm::vec3(0.0f, 0.0f, 1.0f), 0.3f, rgb(0, 119, 190) },
+        { glm::vec3(0.9f, 0.0f, 0.2f), 0.2f, rgb(140, 55, 62) },
+        { glm::vec3(-0.7f, 0.0f, -1.3f), 0.8f, rgb(255, 150, 79 ) },
     };
 
 
@@ -172,8 +178,11 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // change the light's position values over time (can be done anywhere in the render loop actually, but try to do it at least before using the light source positions)
-        lightPos.x = 1.0f + sin((glfwGetTime())) * 2.0f;
-        lightPos.y = sin((glfwGetTime()) / 2.0f) * 1.0f;
+        //lightPos.x = 1.0f + sin((glfwGetTime())) * 2.0f;
+        //lightPos.y = sin((glfwGetTime()) / 2.0f) * 1.0f;
+        orbitCalc(bodies[0], 0.25, 3, 2);
+        orbitCalc(bodies[1], 0.6, 2, 1);
+        orbitCalc(bodies[2], -0.25, 5, 3);
 
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
@@ -196,7 +205,7 @@ int main()
         lightSphereShader.setMat4("projection", projection);
         lightSphereShader.setMat4("view", view);
 
-        drawSphere(sphere, lightSphereShader, lightPos, 0.1f, rgb(255, 255, 255));
+        drawSphere(sphere, lightSphereShader, lightPos, 1.0f, rgb(255, 255, 255));
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
