@@ -145,7 +145,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
 
-    Shader gridShader("Grid.vert", "Grid.frag");
+    Shader gridShader("Shader Files/Grid.vert", "Shader Files/Grid.frag");
     Grid grid = createGrid(25.0f, 120, -1.0f);        // 20 units wide, 120 squares per side, 1.5 below the orbit plane
     Body sun = { lightPos, 1.0f, rgb(255, 255, 255) };
 
@@ -153,8 +153,8 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // build and compile our shader zprogram
-    Shader lightingShader("ObjectLighting.vert", "ObjectLighting.frag");
-    Shader lightSphereShader("LightSphere.vert", "LightSphere.frag");
+    Shader lightingShader("Shader Files/ObjectLighting.vert", "Shader Files/ObjectLighting.frag");
+    Shader lightSphereShader("Shader Files/LightSphere.vert", "Shader Files/LightSphere.frag");
 
     Mesh sphere = createSphereMesh(36, 18);   // columns, rows
 

@@ -897,22 +897,22 @@
     <ClInclude Include="Libraries\include\KHR\khrplatform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="camera.h">
+    <ClInclude Include="Header Files\camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="shader.h">
+    <ClInclude Include="Header Files\shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="stb_image.h">
+    <ClInclude Include="Header Files\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mesh.h">
+    <ClInclude Include="Header Files\mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="body.h">
+    <ClInclude Include="Header Files\body.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="grid.h">
+    <ClInclude Include="Header Files\grid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1337,12 +1337,12 @@
     <None Include="Libraries\include\glm\gtx\wrap.inl">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="LightSphere.vert" />
-    <None Include="LightSphere.frag" />
-    <None Include="ObjectLighting.vert" />
-    <None Include="ObjectLighting.frag" />
-    <None Include="Grid.frag" />
-    <None Include="Grid.vert" />
+    <None Include="Shader Files\LightSphere.vert" />
+    <None Include="Shader Files\LightSphere.frag" />
+    <None Include="Shader Files\ObjectLighting.vert" />
+    <None Include="Shader Files\ObjectLighting.frag" />
+    <None Include="Shader Files\Grid.frag" />
+    <None Include="Shader Files\Grid.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Libraries\include\glm\detail\glm.cpp">
