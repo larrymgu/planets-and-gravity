@@ -28,7 +28,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(0.0f, 2.0f, 14.0f));
+Camera camera(glm::vec3(0.0f, 3.0f, 16.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -246,9 +246,9 @@ int main()
     Mesh sphere = createSphereMesh(36, 18);   // columns, rows
 
     std::vector<Body> bodies = {
-        { glm::vec3(0.0f, 0.0f, 1.0f), 0.3f, rgb(0, 119, 190) },
-        { glm::vec3(0.9f, 0.0f, 0.2f), 0.2f, rgb(140, 55, 62) },
-        { glm::vec3(-0.7f, 0.0f, -1.3f), 0.8f, rgb(255, 150, 79 ) },
+        { glm::vec3(0.0f, 0.0f, 1.0f), 0.2f, rgb(0, 119, 190) },
+        { glm::vec3(0.9f, 0.0f, 0.2f), 0.1f, rgb(140, 55, 62) },
+        { glm::vec3(-0.7f, 0.0f, -1.3f), 0.5f, rgb(255, 150, 79 ) },
     };
 
 
@@ -270,13 +270,13 @@ int main()
         // change the light's position values over time (can be done anywhere in the render loop actually, but try to do it at least before using the light source positions)
         //lightPos.x = 1.0f + sin((glfwGetTime())) * 2.0f;
         //lightPos.y = sin((glfwGetTime()) / 2.0f) * 1.0f;
-        orbitCalc(bodies[0], 0.25, 3, 2);
-        orbitCalc(bodies[1], 0.6, 2, 1);
-        orbitCalc(bodies[2], -0.25, 5, 3);
+        orbitCalc(bodies[0], 0.25, 4, 2);
+        orbitCalc(bodies[1], 0.6, 3, 3);
+        orbitCalc(bodies[2], -0.25, 7, 1);
 
         std::vector<Body> gravitySources = bodies;
         gravitySources.push_back(sun);
-        updateGrid(grid, gravitySources, 2.5f);
+        updateGrid(grid, gravitySources, 5.0f);
 
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
@@ -299,7 +299,7 @@ int main()
         lightSphereShader.setMat4("projection", projection);
         lightSphereShader.setMat4("view", view);
 
-        drawSphere(sphere, lightSphereShader, lightPos, 1.0f, rgb(255, 255, 255));
+        drawSphere(sphere, lightSphereShader, lightPos, 1.25f, rgb(255, 255, 255));
 
         gridShader.use();
         gridShader.setMat4("projection", projection);
