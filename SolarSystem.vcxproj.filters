@@ -900,7 +900,7 @@
     <ClInclude Include="camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="shader_s.h">
+    <ClInclude Include="shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="stb_image.h">
@@ -1335,6 +1335,8 @@
     <None Include="LightSphere.frag" />
     <None Include="ObjectLighting.vert" />
     <None Include="ObjectLighting.frag" />
+    <None Include="Grid.frag" />
+    <None Include="Grid.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Libraries\include\glm\detail\glm.cpp">
