@@ -28,7 +28,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(0.0f, 3.0f, 16.0f));
+Camera camera(glm::vec3(0.0f, 1.0f, 16.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -270,9 +270,9 @@ int main()
         // change the light's position values over time (can be done anywhere in the render loop actually, but try to do it at least before using the light source positions)
         //lightPos.x = 1.0f + sin((glfwGetTime())) * 2.0f;
         //lightPos.y = sin((glfwGetTime()) / 2.0f) * 1.0f;
-        orbitCalc(bodies[0], 0.25, 4, 2);
-        orbitCalc(bodies[1], 0.6, 3, 3);
-        orbitCalc(bodies[2], -0.25, 7, 1);
+        orbitCalc(bodies[0], 0.25, 3, 2);
+        orbitCalc(bodies[1], 0.6, 4, 1.25);
+        orbitCalc(bodies[2], -0.25, 7, 0.5);
 
         std::vector<Body> gravitySources = bodies;
         gravitySources.push_back(sun);
@@ -299,7 +299,7 @@ int main()
         lightSphereShader.setMat4("projection", projection);
         lightSphereShader.setMat4("view", view);
 
-        drawSphere(sphere, lightSphereShader, lightPos, 1.25f, rgb(255, 255, 255));
+        drawSphere(sphere, lightSphereShader, lightPos, 1.5f, rgb(255, 255, 255));
 
         gridShader.use();
         gridShader.setMat4("projection", projection);
