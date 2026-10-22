@@ -32,7 +32,7 @@ const unsigned int SCR_HEIGHT = 600;
 unsigned int samples = 8;
 
 // camera
-Camera camera(glm::vec3(0.0f, 1.0f, 16.0f));
+Camera camera(glm::vec3(0.0f, -3.0f, 24.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -146,7 +146,7 @@ int main()
     glEnable(GL_MULTISAMPLE);
 
     Shader gridShader("Shader Files/Grid.vert", "Shader Files/Grid.frag");
-    Grid grid = createGrid(25.0f, 120, -1.0f);        // 20 units wide, 120 squares per side, 1.5 below the orbit plane
+    Grid grid = createGrid(50.0f, 200, -8.0f);       
     Body sun = { lightPos, 1.0f, rgb(255, 255, 255) };
 
     glEnable(GL_BLEND);                                // lets the grid's alpha make it see-through
@@ -189,7 +189,7 @@ int main()
 
         std::vector<Body> gravitySources = bodies;
         gravitySources.push_back(sun);
-        updateGrid(grid, gravitySources, 5.0f);
+        updateGrid(grid, gravitySources, 10.0f);
 
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
@@ -217,7 +217,7 @@ int main()
         gridShader.use();
         gridShader.setMat4("projection", projection);
         gridShader.setMat4("view", view);
-        drawGrid(grid, gridShader, glm::vec4(1.0f, 1.0f, 1.0f, 0.25f));   // white at 25% opacity
+        drawGrid(grid, gridShader, glm::vec4(0.1f, 0.1f, 0.1f, 1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.25f));
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
