@@ -36,7 +36,7 @@ const unsigned int BLOOM_HEIGHT = SCR_HEIGHT / BLOOM_DOWNSCALE;
 unsigned int samples = 8;
 
 // camera
-Camera camera(glm::vec3(0.0f, -4.0f, 27.5f));
+Camera camera(glm::vec3(0.0f, -7.0f, 45.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -165,7 +165,7 @@ int main()
     glEnable(GL_MULTISAMPLE);
 
     Shader gridShader("Shader Files/Grid.vert", "Shader Files/Grid.frag");
-    Grid grid = createGrid(50.0f, 300, -12.0f);       
+    Grid grid = createGrid(75.0f, 450, -15.0f);       
     Body sun = { lightPos, 2.5f, rgb(255, 255, 255) };
 
     glEnable(GL_BLEND);                                // lets the grid's alpha make it see-through
@@ -333,9 +333,9 @@ int main()
         // change the light's position values over time (can be done anywhere in the render loop actually, but try to do it at least before using the light source positions)
         //lightPos.x = 1.0f + sin((glfwGetTime())) * 2.0f;
         //lightPos.y = sin((glfwGetTime()) / 2.0f) * 1.0f;
-        orbitCalc(bodies[0], 0.25, 5 , 0.9);
-        orbitCalc(bodies[1], 0.6, 8, 0.45);
-        orbitCalc(bodies[2], -0.25, 11, 0.27);
+        orbitCalc(bodies[0], 0.25, 6 , 1.0);
+        orbitCalc(bodies[1], 0.6, 13, 0.32);
+        orbitCalc(bodies[2], -0.25, 20, 0.17);
 
         std::vector<Body> gravitySources = bodies;
         gravitySources.push_back(sun);
