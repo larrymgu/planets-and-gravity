@@ -32,7 +32,7 @@ const unsigned int SCR_HEIGHT = 600;
 unsigned int samples = 8;
 
 // camera
-Camera camera(glm::vec3(0.0f, -3.0f, 24.0f));
+Camera camera(glm::vec3(0.0f, -3.0f, 22.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -43,6 +43,21 @@ float lastFrame = 0.0f;
 
 // lighting
 glm::vec3 lightPos(0.0f, 0.0f, 0.0f);
+
+// For Framebuffer
+float rectangleVertices[] =
+{
+    // Coords    // texCoords
+     1.0f, -1.0f,  1.0f, 0.0f,
+    -1.0f, -1.0f,  0.0f, 0.0f,
+    -1.0f,  1.0f,  0.0f, 1.0f,
+
+     1.0f,  1.0f,  1.0f, 1.0f,
+     1.0f, -1.0f,  1.0f, 0.0f,
+    -1.0f,  1.0f,  0.0f, 1.0f
+};
+
+
 
 // Builds a unit sphere (radius 1) centred on the origin.
 // sectors = columns (longitude), stacks = rows (latitude).
@@ -109,7 +124,7 @@ int main()
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_SAMPLES, samples);
+    // glfwWindowHint(GLFW_SAMPLES, samples);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 
@@ -152,9 +167,11 @@ int main()
     glEnable(GL_BLEND);                                // lets the grid's alpha make it see-through
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // build and compile our shader zprogram
+    // build and compile our shader programs
     Shader lightingShader("Shader Files/ObjectLighting.vert", "Shader Files/ObjectLighting.frag");
     Shader lightSphereShader("Shader Files/LightSphere.vert", "Shader Files/LightSphere.frag");
+    Shader framebufferProgram("Shader Files/FrameBuffer.vert", "Shader Files/FrameBuffer.frag");
+
 
     Mesh sphere = createSphereMesh(36, 18);   // columns, rows
 
@@ -163,6 +180,70 @@ int main()
         { glm::vec3(0.9f, 0.0f, 0.2f), 0.1f, rgb(140, 55, 62) },
         { glm::vec3(-0.7f, 0.0f, -1.3f), 0.5f, rgb(255, 150, 79 ) },
     };
+
+    // Prepare framebuffer rectangle VBO and VAO
+    unsigned int rectVAO, rectVBO;
+    glGenVertexArrays(1, &rectVAO);
+    glGenBuffers(1, &rectVBO);
+    glBindVertexArray(rectVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, rectVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(rectangleVertices), &rectangleVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+
+    // Create Frame Buffer Object
+    unsigned int FBO;
+    glGenFramebuffers(1, &FBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+
+    // Create Framebuffer Texture
+    unsigned int framebufferTexture;
+    glGenTextures(1, &framebufferTexture);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, framebufferTexture);
+    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB, SCR_WIDTH, SCR_HEIGHT, GL_TRUE);
+    glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // Prevents edge bleeding
+    glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Prevents edge bleeding
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, framebufferTexture, 0);
+
+    // Create Render Buffer Object
+    unsigned int RBO;
+    glGenRenderbuffers(1, &RBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, RBO);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO);
+
+
+    // Error checking framebuffer
+    auto fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (fboStatus != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "Framebuffer error: " << fboStatus << std::endl;
+
+    // Create Frame Buffer Object
+    unsigned int postProcessingFBO;
+    glGenFramebuffers(1, &postProcessingFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, postProcessingFBO);
+
+    // Create Framebuffer Texture
+    unsigned int postProcessingTexture;
+    glGenTextures(1, &postProcessingTexture);
+    glBindTexture(GL_TEXTURE_2D, postProcessingTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, postProcessingTexture, 0);
+
+    // Error checking framebuffer
+    fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (fboStatus != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "Post-Processing Framebuffer error: " << fboStatus << std::endl;
+
 
 
     // render loop
@@ -177,8 +258,10 @@ int main()
         processInput(window);
 
         // render
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
 
         // change the light's position values over time (can be done anywhere in the render loop actually, but try to do it at least before using the light source positions)
         //lightPos.x = 1.0f + sin((glfwGetTime())) * 2.0f;
@@ -219,6 +302,22 @@ int main()
         gridShader.setMat4("view", view);
         drawGrid(grid, gridShader, glm::vec4(0.1f, 0.1f, 0.1f, 1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.25f));
 
+        // Make it so the multisampling FBO is read while the post-processing FBO is drawn
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, postProcessingFBO);
+        // Conclude the multisampling and copy it to the post-processing FBO
+        glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+
+        // Bind the default framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        // Draw the framebuffer rectangle
+        framebufferProgram.use();
+        glBindVertexArray(rectVAO);
+        glDisable(GL_DEPTH_TEST); // prevents framebuffer rectangle from being discarded
+        glBindTexture(GL_TEXTURE_2D, postProcessingTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -254,7 +353,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
-    glViewport(0, 0, width, height);
+    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 }
 
 
