@@ -165,7 +165,7 @@ int main()
     glEnable(GL_MULTISAMPLE);
 
     Shader gridShader("Shader Files/Grid.vert", "Shader Files/Grid.frag");
-    Grid grid = createGrid(75.0f, 450, -15.0f);       
+    Grid grid = createGrid(75.0f, 450, -13.0f);       
     Body sun = { lightPos, 2.5f, rgb(255, 255, 255) };
 
     glEnable(GL_BLEND);                                // lets the grid's alpha make it see-through
