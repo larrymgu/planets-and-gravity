@@ -86,7 +86,7 @@ void updateGrid(Grid& grid, const std::vector<Body>& bodies, float strength)
         {
             float dx = p.x - b.position.x;
             float dz = p.z - b.position.z;
-            float distance = sqrtf(dx * dx + dz * dz + b.radius * b.radius * 3);   // softened
+            float distance = sqrtf(dx * dx + dz * dz + b.radius * b.radius * 4);   // softened
             depth += strength * b.mass() / distance;
         }
         p.y = grid.baseHeight + depth;

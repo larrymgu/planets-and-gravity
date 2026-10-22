@@ -36,7 +36,7 @@ const unsigned int BLOOM_HEIGHT = SCR_HEIGHT / BLOOM_DOWNSCALE;
 unsigned int samples = 8;
 
 // camera
-Camera camera(glm::vec3(0.0f, -3.0f, 22.0f));
+Camera camera(glm::vec3(0.0f, -4.0f, 27.5f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -165,8 +165,8 @@ int main()
     glEnable(GL_MULTISAMPLE);
 
     Shader gridShader("Shader Files/Grid.vert", "Shader Files/Grid.frag");
-    Grid grid = createGrid(50.0f, 200, -8.0f);       
-    Body sun = { lightPos, 1.0f, rgb(255, 255, 255) };
+    Grid grid = createGrid(50.0f, 300, -12.0f);       
+    Body sun = { lightPos, 2.5f, rgb(255, 255, 255) };
 
     glEnable(GL_BLEND);                                // lets the grid's alpha make it see-through
     glDisablei(GL_BLEND, 1);   // the glow image (colour buffer 1) stores values as written
@@ -181,9 +181,9 @@ int main()
     Mesh sphere = createSphereMesh(36, 18);   // columns, rows
 
     std::vector<Body> bodies = {
-        { glm::vec3(0.0f, 0.0f, 1.0f), 0.2f, rgb(0, 119, 190) },
-        { glm::vec3(0.9f, 0.0f, 0.2f), 0.1f, rgb(140, 55, 62) },
-        { glm::vec3(-0.7f, 0.0f, -1.3f), 0.5f, rgb(255, 150, 79 ) },
+        { glm::vec3(0.0f, 0.0f, 1.0f), 0.2f, rgb(0, 119, 190), 5.51f },     // Earth-like
+        { glm::vec3(0.9f, 0.0f, 0.2f), 0.1f, rgb(140, 55, 62), 3.93f },     // Mars-like
+        { glm::vec3(-0.7f, 0.0f, -1.3f), 0.5f, rgb(255, 150, 79), 5.00f },  // Jupiter-like
     };
 
     // Prepare framebuffer rectangle VBO and VAO
@@ -333,13 +333,13 @@ int main()
         // change the light's position values over time (can be done anywhere in the render loop actually, but try to do it at least before using the light source positions)
         //lightPos.x = 1.0f + sin((glfwGetTime())) * 2.0f;
         //lightPos.y = sin((glfwGetTime()) / 2.0f) * 1.0f;
-        orbitCalc(bodies[0], 0.25, 3, 1.3);
-        orbitCalc(bodies[1], 0.6, 4, 0.8);
-        orbitCalc(bodies[2], -0.25, 7, 0.3);
+        orbitCalc(bodies[0], 0.25, 5 , 0.9);
+        orbitCalc(bodies[1], 0.6, 8, 0.45);
+        orbitCalc(bodies[2], -0.25, 11, 0.27);
 
         std::vector<Body> gravitySources = bodies;
         gravitySources.push_back(sun);
-        updateGrid(grid, gravitySources, 10.0f);
+        updateGrid(grid, gravitySources, 2.0f);
 
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
@@ -347,7 +347,7 @@ int main()
         lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
         lightingShader.setVec3("lightPos", lightPos);
         lightingShader.setVec3("viewPos", camera.Position);
-        lightingShader.setFloat("sunRadius", 1.5f);   // match the sun's size on line 366
+        lightingShader.setFloat("sunRadius", 2.5f);   // match the sun's size on line 366
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -364,7 +364,7 @@ int main()
         lightSphereShader.setMat4("projection", projection);
         lightSphereShader.setMat4("view", view);
 
-        drawSphere(sphere, lightSphereShader, lightPos, 1.5f, rgb(255, 255, 255));
+        drawSphere(sphere, lightSphereShader, lightPos, 2.5f, rgb(255, 255, 255));
 
         gridShader.use();
         gridShader.setMat4("projection", projection);

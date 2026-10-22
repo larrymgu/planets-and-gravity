@@ -12,7 +12,8 @@ struct Body {
     glm::vec3 position;
     float radius;
     glm::vec3 color;
-    float mass() const { return std::pow(radius, 3); }
+    float density = 1.41f;   // g/cm^3. Sun 1.41, Earth 5.51, Mars 3.93, Mercury 5.43, Jupiter 1.33
+    float mass() const { return density * radius * radius * radius; }
 };
 
 void orbitCalc(Body& bodyObject, float startingOffset, float orbitalRadius, float orbitalSpeed) {
