@@ -1345,6 +1345,7 @@
     <None Include="Shader Files\Grid.vert" />
     <None Include="Shader Files\FrameBuffer.frag" />
     <None Include="Shader Files\FrameBuffer.vert" />
+    <None Include="Shader Files\Blur.frag" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Libraries\include\glm\detail\glm.cpp">

@@ -29,6 +29,10 @@ void processInput(GLFWwindow* window);
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
+const unsigned int BLOOM_DOWNSCALE = 2;   // 2 = half resolution, 4 = quarter
+const unsigned int BLOOM_WIDTH = SCR_WIDTH / BLOOM_DOWNSCALE;
+const unsigned int BLOOM_HEIGHT = SCR_HEIGHT / BLOOM_DOWNSCALE;
+
 unsigned int samples = 8;
 
 // camera
@@ -134,7 +138,7 @@ int main()
 #endif
 
     // glfw window creation
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Planets and Gravity", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -165,6 +169,7 @@ int main()
     Body sun = { lightPos, 1.0f, rgb(255, 255, 255) };
 
     glEnable(GL_BLEND);                                // lets the grid's alpha make it see-through
+    glDisablei(GL_BLEND, 1);   // the glow image (colour buffer 1) stores values as written
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // build and compile our shader programs
@@ -210,6 +215,17 @@ int main()
     glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Prevents edge bleeding
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, framebufferTexture, 0);
 
+    // Second colour buffer: only the glowing parts of the scene
+    unsigned int brightTextureMS;
+    glGenTextures(1, &brightTextureMS);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, brightTextureMS);
+    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, GL_TRUE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_MULTISAMPLE, brightTextureMS, 0);
+
+    // Tell OpenGL the fragment shaders write to both colour buffers
+    unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+    glDrawBuffers(2, attachments);
+
     // Create Render Buffer Object
     unsigned int RBO;
     glGenRenderbuffers(1, &RBO);
@@ -239,12 +255,61 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, postProcessingTexture, 0);
 
+    unsigned int brightTexture;
+    glGenTextures(1, &brightTexture);
+    glBindTexture(GL_TEXTURE_2D, brightTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, brightTexture, 0);
+
     // Error checking framebuffer
     fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (fboStatus != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "Post-Processing Framebuffer error: " << fboStatus << std::endl;
 
+    // Two framebuffers the glow image bounces between while it's blurred
+    unsigned int pingpongFBO[2], pingpongTexture[2];
+    glGenFramebuffers(2, pingpongFBO);
+    glGenTextures(2, pingpongTexture);
+    for (int i = 0; i < 2; i++)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
+        glBindTexture(GL_TEXTURE_2D, pingpongTexture[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, BLOOM_WIDTH, BLOOM_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpongTexture[i], 0);
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // A framebuffer to keep a copy of the glow before it's fully blurred
+    unsigned int narrowFBO, narrowTexture;
+    glGenFramebuffers(1, &narrowFBO);
+    glGenTextures(1, &narrowTexture);
+    glBindFramebuffer(GL_FRAMEBUFFER, narrowFBO);
+    glBindTexture(GL_TEXTURE_2D, narrowTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, BLOOM_WIDTH, BLOOM_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, narrowTexture, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    Shader blurShader("Shader Files/FrameBuffer.vert", "Shader Files/Blur.frag");
+
+    // Which texture unit each sampler reads from (only needs setting once)
+    blurShader.use();
+    blurShader.setInt("image", 0);
+    framebufferProgram.use();
+    framebufferProgram.setInt("screenTexture", 0);
+    framebufferProgram.setInt("bloomBlur", 1);
+    framebufferProgram.setInt("bloomNarrow", 2);
+    framebufferProgram.setInt("planetMask", 3);
 
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -261,14 +326,16 @@ int main()
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        glClearBufferfv(GL_COLOR, 1, black);   // colour buffer 1 = the glow image
         glEnable(GL_DEPTH_TEST);
 
         // change the light's position values over time (can be done anywhere in the render loop actually, but try to do it at least before using the light source positions)
         //lightPos.x = 1.0f + sin((glfwGetTime())) * 2.0f;
         //lightPos.y = sin((glfwGetTime()) / 2.0f) * 1.0f;
-        orbitCalc(bodies[0], 0.25, 3, 2);
-        orbitCalc(bodies[1], 0.6, 4, 1.25);
-        orbitCalc(bodies[2], -0.25, 7, 0.5);
+        orbitCalc(bodies[0], 0.25, 3, 1.3);
+        orbitCalc(bodies[1], 0.6, 4, 0.8);
+        orbitCalc(bodies[2], -0.25, 7, 0.3);
 
         std::vector<Body> gravitySources = bodies;
         gravitySources.push_back(sun);
@@ -280,6 +347,7 @@ int main()
         lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
         lightingShader.setVec3("lightPos", lightPos);
         lightingShader.setVec3("viewPos", camera.Position);
+        lightingShader.setFloat("sunRadius", 1.5f);   // match the sun's size on line 366
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -292,6 +360,7 @@ int main()
 
         // also draw the lamp object
         lightSphereShader.use();
+        lightSphereShader.setFloat("glowStrength", 1.2f);
         lightSphereShader.setMat4("projection", projection);
         lightSphereShader.setMat4("view", view);
 
@@ -302,22 +371,61 @@ int main()
         gridShader.setMat4("view", view);
         drawGrid(grid, gridShader, glm::vec4(0.1f, 0.1f, 0.1f, 1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.25f));
 
-        // Make it so the multisampling FBO is read while the post-processing FBO is drawn
         glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, postProcessingFBO);
-        // Conclude the multisampling and copy it to the post-processing FBO
-        glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        for (int i = 0; i < 2; i++)
+        {
+            glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
+            glDrawBuffer(GL_COLOR_ATTACHMENT0 + i);
+            glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        }
 
-
-        // Bind the default framebuffer
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        // Draw the framebuffer rectangle
-        framebufferProgram.use();
+        // Screen-rectangle passes: no depth test or blending
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
         glBindVertexArray(rectVAO);
-        glDisable(GL_DEPTH_TEST); // prevents framebuffer rectangle from being discarded
+        glActiveTexture(GL_TEXTURE0);
+
+        // Blur the glow image, alternating horizontal and vertical passes
+        glViewport(0, 0, BLOOM_WIDTH, BLOOM_HEIGHT);
+        bool horizontal = true;
+        int blurPasses = 1000;
+        int narrowPasses = 10;   // when to save the tight glow; keep it even and less than blurPasses
+        blurShader.use();
+        for (int i = 0; i < blurPasses; i++)
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
+            blurShader.setBool("horizontal", horizontal);
+            glBindTexture(GL_TEXTURE_2D, i == 0 ? brightTexture : pingpongTexture[!horizontal]);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+            horizontal = !horizontal;
+            // Partway through, save a copy of the still-tight glow
+            if (i == narrowPasses - 1)
+            {
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, pingpongFBO[!horizontal]);   // the texture just written
+                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, narrowFBO);
+                glBlitFramebuffer(0, 0, BLOOM_WIDTH, BLOOM_HEIGHT, 0, 0, BLOOM_WIDTH, BLOOM_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            }
+        }
+
+        // Draw scene + blurred glow to the window
+
+        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        framebufferProgram.use();
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, postProcessingTexture);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, pingpongTexture[!horizontal]);   // the last blurred result
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, narrowTexture);   // the saved early, tight blur
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, brightTexture);   // unblurred glow image, used as the planet mask
+        glActiveTexture(GL_TEXTURE0);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
+        glEnable(GL_BLEND);   // the grid needs blending again next frame
+        glDisablei(GL_BLEND, 1);   // the glow image (colour buffer 1) stores values as written
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
         glfwPollEvents();

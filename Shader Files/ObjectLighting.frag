@@ -1,5 +1,6 @@
 #version 330 core
-out vec4 FragColor;
+layout (location = 0) out vec4 FragColor;     // normal scene
+layout (location = 1) out vec4 BrightColor;   // glow image
 
 in vec3 Normal;  
 in vec3 FragPos;  
@@ -8,6 +9,7 @@ uniform vec3 lightPos;
 uniform vec3 viewPos; 
 uniform vec3 lightColor;
 uniform vec3 objectColor;
+uniform float sunRadius;
 
 void main()
 {
@@ -33,4 +35,9 @@ void main()
         
     vec3 result = (ambient + diffuse + specular) * objectColor;
     FragColor = vec4(result, 1.0);
+
+    float planetDistance = length(viewPos - FragPos);
+    float sunDistance    = length(viewPos - lightPos);
+    float inFront = smoothstep(-sunRadius, sunRadius, sunDistance - planetDistance);
+    BrightColor = vec4(0.0, 0.0, 0.0, inFront);
 } 

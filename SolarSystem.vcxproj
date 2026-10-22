@@ -445,6 +445,7 @@
     <ClInclude Include="Header Files\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shader Files\Blur.frag" />
     <None Include="Shader Files\FrameBuffer.frag" />
     <None Include="Shader Files\FrameBuffer.vert" />
     <None Include="Shader Files\Grid.frag" />
