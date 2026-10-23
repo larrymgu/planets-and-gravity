@@ -165,7 +165,7 @@ int main()
     glEnable(GL_MULTISAMPLE);
 
     Shader gridShader("Shader Files/Grid.vert", "Shader Files/Grid.frag");
-    Grid grid = createGrid(75.0f, 450, -13.0f);       
+    Grid grid = createGrid(125.0f, 700, -13.0f);       
     Body sun = { lightPos, 2.5f, rgb(255, 255, 255) };
 
     glEnable(GL_BLEND);                                // lets the grid's alpha make it see-through
@@ -181,9 +181,14 @@ int main()
     Mesh sphere = createSphereMesh(36, 18);   // columns, rows
 
     std::vector<Body> bodies = {
-        { glm::vec3(0.0f, 0.0f, 1.0f), 0.2f, rgb(0, 119, 190), 5.51f },     // Earth-like
-        { glm::vec3(0.9f, 0.0f, 0.2f), 0.1f, rgb(140, 55, 62), 3.93f },     // Mars-like
-        { glm::vec3(-0.7f, 0.0f, -1.3f), 0.5f, rgb(255, 150, 79), 5.00f },  // Jupiter-like
+        { glm::vec3(0.0f, 0.0f, 0.0f), 0.05f, rgb(138, 133, 136), 5.43f },     // Mercury
+        { glm::vec3(0.0f, 0.0f, 0.0f), 0.1f, rgb(252, 181, 8), 5.24f },     // Venus
+        { glm::vec3(0.0f, 0.0f, 0.0f), 0.1f, rgb(18, 38, 105), 5.51f },  // Earth
+        { glm::vec3(0.0f, 0.0f, 0.0f), 0.075f, rgb(146, 71, 55), 3.93f },     // Mars
+        { glm::vec3(0.0f, 0.0f, 0.0f), 0.5f, rgb(245, 163, 62), 1.33f },     // Jupiter
+        { glm::vec3(0.0f, 0.0f, 0.0f), 0.4f, rgb(228, 205, 158), 0.69f },     // Saturn
+        { glm::vec3(0.0f, 0.0f, 0.0f), 0.3f, rgb(2, 204, 254), 1.27f },  // Uranus
+        { glm::vec3(0.0f, 0.0f, 0.0f), 0.275f, rgb(39, 59, 226), 1.64f },     // Neptune
     };
 
     // Prepare framebuffer rectangle VBO and VAO
@@ -324,7 +329,7 @@ int main()
 
         // render
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
         glClearBufferfv(GL_COLOR, 1, black);   // colour buffer 1 = the glow image
@@ -333,13 +338,18 @@ int main()
         // change the light's position values over time (can be done anywhere in the render loop actually, but try to do it at least before using the light source positions)
         //lightPos.x = 1.0f + sin((glfwGetTime())) * 2.0f;
         //lightPos.y = sin((glfwGetTime()) / 2.0f) * 1.0f;
-        orbitCalc(bodies[0], 0.25, 6 , 1.0);
-        orbitCalc(bodies[1], 0.6, 13, 0.32);
-        orbitCalc(bodies[2], -0.25, 20, 0.17);
+        orbitCalc(bodies[0], 0.25, 5 , 3.73);
+        orbitCalc(bodies[1], 0.6, 9, 9.00);
+        orbitCalc(bodies[2], -0.25, 14, 17.5);
+        orbitCalc(bodies[3], -0.5, 20, 29.8);
+        orbitCalc(bodies[4], -0.4, 27, 46.8);
+        orbitCalc(bodies[5], 0.1, 35, 69.0);
+        orbitCalc(bodies[6], 0.9, 44, 97.3);
+        orbitCalc(bodies[7], -0.8, 53, 129);
 
         std::vector<Body> gravitySources = bodies;
         gravitySources.push_back(sun);
-        updateGrid(grid, gravitySources, 2.0f);
+        updateGrid(grid, gravitySources, 5.0f);
 
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
@@ -369,7 +379,7 @@ int main()
         gridShader.use();
         gridShader.setMat4("projection", projection);
         gridShader.setMat4("view", view);
-        drawGrid(grid, gridShader, glm::vec4(0.1f, 0.1f, 0.1f, 1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.25f));
+        drawGrid(grid, gridShader, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.1f));
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, postProcessingFBO);
