@@ -13,7 +13,7 @@ void main()
     vec3 wide   = texture(bloomBlur, texCoords).rgb;     // faint, reaches far
     vec3 narrow = texture(bloomNarrow, texCoords).rgb;   // bright, close to the star
     vec3 bloom  = narrow * 1.5 * vec3(1.0, 0.95, 0.85)    // core: nearly white
-                + wide   * 2.0 * vec3(1.0, 0.8, 0.55);    // outer glow: warmer 
+                + wide   * 1.5 * vec3(1.0, 0.8, 0.55);    // outer glow: warmer 
     float mask = texture(planetMask, texCoords).a;
     const float glowOverPlanets = 0.25;   // 0 = no glow on planets, 1 = full glow as before
     bloom *= mix(1.0, glowOverPlanets, mask);
